@@ -125,7 +125,7 @@ async function writeToSheets(pets) {
   const COLS   = ['name', 'breed', 'location', 'photo', 'url', 'date', 'scraped'];
 
   await sheets.spreadsheets.values.update({
-    spreadsheetId:    process.env.GOOGLE_SHEET_ID,
+    spreadsheetId:    process.env.GOOGLE_SHEET_ID.trim(),
     range:            'A1',
     valueInputOption: 'RAW',
     requestBody:      { values: [COLS, ...pets.map(p => COLS.map(k => p[k]))] },
