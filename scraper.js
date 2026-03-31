@@ -73,9 +73,12 @@ async function scrapePawBoost() {
     console.log('[No API calls intercepted, checking DOM...]');
   }
 
-  await page.screenshot({ path: 'debug.png' });
-  const fs = require('fs');
-  fs.writeFileSync('debug.html', await page.content());
+  // 印出 pet-feed-search-results-container 的 HTML 供 debug
+  const debugHtml = await page.evaluate(() => {
+    const el = document.querySelector('.pet-feed-search-results-container');
+    return el ? el.innerHTML.slice(0, 3000) : document.title + ' | body:' + document.body.innerHTML.slice(0, 2000);
+  });
+  console.log('[DEBUG PAGE]', debugHtml);
 
   const pets = await page.evaluate(() => {
     // PawBoost 卡片選擇器（若改版請對應調整）
