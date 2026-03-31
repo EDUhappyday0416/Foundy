@@ -124,7 +124,7 @@ async function writeToSheets(pets) {
 
   await sheets.spreadsheets.values.update({
     spreadsheetId:    process.env.GOOGLE_SHEET_ID,
-    range:            '工作表1!A1',
+    range:            'A1',
     valueInputOption: 'RAW',
     requestBody:      { values: [COLS, ...pets.map(p => COLS.map(k => p[k]))] },
   });
