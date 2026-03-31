@@ -74,6 +74,8 @@ async function scrapePawBoost() {
   }
 
   await page.screenshot({ path: 'debug.png' });
+  const fs = require('fs');
+  fs.writeFileSync('debug.html', await page.content());
 
   const pets = await page.evaluate(() => {
     // PawBoost 卡片選擇器（若改版請對應調整）
