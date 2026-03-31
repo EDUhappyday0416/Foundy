@@ -117,6 +117,8 @@ async function writeToSheets(pets) {
   const credJson = process.env.GOOGLE_CREDENTIALS
     ? JSON.parse(Buffer.from(process.env.GOOGLE_CREDENTIALS, 'base64').toString('utf8'))
     : require('./credentials.json');
+  console.log('[DEBUG] sheet_id:', process.env.GOOGLE_SHEET_ID);
+  console.log('[DEBUG] cred client_email:', credJson.client_email);
 
   const auth   = new google.auth.GoogleAuth({ credentials: credJson, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
   const sheets = google.sheets({ version: 'v4', auth });
