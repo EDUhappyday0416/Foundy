@@ -32,7 +32,8 @@ const delay = ms => new Promise(r => setTimeout(r, ms));
 async function scrapePawBoost() {
   const browser = await puppeteer.launch({
     headless: 'new',
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
+      || (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : undefined),
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled'],
   });
 

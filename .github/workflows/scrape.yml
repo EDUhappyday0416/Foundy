@@ -1,0 +1,30 @@
+name: Scrape PawBoost (US)
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 每天台灣時間下午 2 點（UTC 6:00）
+  workflow_dispatch:        # 也可以手動觸發
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest  # 美國伺服器，IP 在美國
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx puppeteer browsers install chrome
+
+      - name: Run scraper
+        env:
+          PAWBOOST_CITY:      ${{ secrets.PAWBOOST_CITY }}
+          GOOGLE_SHEET_ID:    ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        run: node scraper.js
