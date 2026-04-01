@@ -37,6 +37,17 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #c8a96e44; border-radius: 9px; }
+
+    /* ── Modal 動畫 ── */
+    .modal-enter-active, .modal-leave-active { transition: opacity 0.25s ease; }
+    .modal-enter-from,   .modal-leave-to     { opacity: 0; }
+    .modal-enter-active .relative, .modal-leave-active .relative { transition: transform 0.3s ease; }
+    .modal-enter-from   .relative            { transform: translateY(40px); }
+    .modal-leave-to     .relative            { transform: translateY(40px); }
+
+    /* ── 篩選抽屜動畫 ── */
+    .sheet-enter-active, .sheet-leave-active { transition: opacity 0.2s ease; }
+    .sheet-enter-from,   .sheet-leave-to     { opacity: 0; }
   </style>
 </head>
 <body class="noise-bg min-h-screen text-[#e8e0d0]">
