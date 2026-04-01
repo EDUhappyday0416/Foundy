@@ -1,14 +1,11 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/*.js", "use": "@vercel/node" },
-    { "src": "*.html",   "use": "@vercel/static" },
-    { "src": "*.js",     "use": "@vercel/static", "config": { "exclude": ["api/**"] } },
-    { "src": "*.css",    "use": "@vercel/static" }
+    { "src": "api/*.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/report",   "dest": "/report.html" },
-    { "src": "/",         "dest": "/index.html" }
+    { "src": "/api/reports", "dest": "/api/reports.js" },
+    { "src": "/api/compare", "dest": "/api/compare.js" },
+    { "src": "/(.*)",        "dest": "/$1" }
   ]
 }
