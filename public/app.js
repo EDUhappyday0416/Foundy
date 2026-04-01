@@ -2,9 +2,56 @@ const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
 const BREEDS = ['全部'];
 const COLORS = ['全部'];
-const CITIES = ['全部'];
-const STATUS_MAP = { keeping: '照顧中', shelter: '已送收容所', released: '已放回' };
-const TYPE_MAP   = { found: '拾獲', lost: '走失' };
+const CITIES = ['All'];
+
+const I18N = {
+  zh: {
+    tagline: 'Lost & Found', title: 'Foundy',
+    records: n => `${n} 筆紀錄`, report: '+ 回報',
+    filter: '篩選', clearFilter: '清除篩選 ↺',
+    all: '全部', found: '拾獲', lost: '走失',
+    list: '列表', map: '地圖',
+    breed: '品種', color: '毛色', location: '地點',
+    loading: '載入中', noRecord: '找不到符合條件的紀錄', beFirst: '成為第一個回報者 →',
+    unknownBreed: '未知品種', unknown: '未知',
+    keeping: '照顧中', shelter: '已送收容所', released: '已放回',
+    resolved: '已找到 / 已歸還',
+    detailFound: '拾獲', detailLost: '走失', myReport: '你的回報',
+    locLabel: '地點', dateLabel: '日期', breedLabel: '品種', colorLabel: '毛色',
+    traitsLabel: '外觀特徵', contactLabel: '聯絡方式',
+    markFound: '標記已找到', delete: '刪除', deleteRecord: '刪除紀錄', share: '分享這則紀錄',
+    confirmFound: '標記此紀錄為「已找到／已歸還」？',
+    confirmDelete: '確定要刪除這則紀錄？此操作無法復原。',
+    copied: '連結已複製！',
+    applyFilter: n => `套用（${n} 筆）`,
+    mapLegendFound: '拾獲', mapLegendLost: '走失', mapLegendResolved: '已解決',
+    noMap: '尚無地圖定位資料', noMapSub: '新回報的紀錄會自動顯示在地圖上',
+    clickDetail: '點擊查看詳情 →',
+  },
+  en: {
+    tagline: 'Lost & Found', title: 'Foundy',
+    records: n => `${n} records`, report: '+ Report',
+    filter: 'Filter', clearFilter: 'Clear ↺',
+    all: 'All', found: 'Found', lost: 'Lost',
+    list: 'List', map: 'Map',
+    breed: 'Breed', color: 'Color', location: 'Location',
+    loading: 'Loading', noRecord: 'No matching records', beFirst: 'Be the first to report →',
+    unknownBreed: 'Unknown breed', unknown: 'Unknown',
+    keeping: 'In care', shelter: 'At shelter', released: 'Released',
+    resolved: 'Reunited',
+    detailFound: 'Found', detailLost: 'Lost', myReport: 'Your report',
+    locLabel: 'Location', dateLabel: 'Date', breedLabel: 'Breed', colorLabel: 'Color',
+    traitsLabel: 'Description', contactLabel: 'Contact',
+    markFound: 'Mark as Reunited', delete: 'Delete', deleteRecord: 'Delete record', share: 'Share this post',
+    confirmFound: 'Mark this pet as reunited?',
+    confirmDelete: 'Delete this record? This cannot be undone.',
+    copied: 'Link copied!',
+    applyFilter: n => `Apply (${n})`,
+    mapLegendFound: 'Found', mapLegendLost: 'Lost', mapLegendResolved: 'Resolved',
+    noMap: 'No map data yet', noMapSub: 'New reports will appear on the map',
+    clickDetail: 'View details →',
+  },
+};
 
 let mapInstance = null;
 
@@ -15,13 +62,17 @@ const App = {
     <!-- ══ HEADER ══ -->
     <header class="fade-up flex items-center justify-between px-5 md:px-8 pt-6 pb-4 border-b border-[#c8a96e22]">
       <div>
-        <p class="text-[#c8a96e] text-[10px] tracking-[0.25em] uppercase leading-relaxed">Lost & Found</p>
-        <h1 class="font-serif-display text-3xl md:text-4xl text-[#f0e6cc] leading-tight">Foundy</h1>
+        <p class="text-[#c8a96e] text-[10px] tracking-[0.25em] uppercase leading-relaxed">{{ t.tagline }}</p>
+        <h1 class="font-serif-display text-3xl md:text-4xl text-[#f0e6cc] leading-tight">{{ t.title }}</h1>
       </div>
-      <div class="flex items-center gap-2 md:gap-4">
-        <span class="hidden md:block text-[#9a9080] text-sm leading-relaxed">{{ filtered.length }} 筆紀錄</span>
+      <div class="flex items-center gap-2 md:gap-3">
+        <span class="hidden md:block text-[#9a9080] text-sm leading-relaxed">{{ t.records(filtered.length) }}</span>
+        <button @click="toggleLang"
+          class="px-3 py-1.5 rounded-xl text-xs border border-[#c8a96e33] text-[#c8a96e] hover:bg-[#c8a96e15] transition">
+          {{ lang === 'zh' ? 'EN' : '中' }}
+        </button>
         <a href="/report.html" class="px-4 py-2 rounded-2xl text-xs md:text-sm font-medium transition bg-[#c8a96e] text-[#1a1a18] hover:bg-[#d4b87a]">
-          + 回報
+          {{ t.report }}
         </a>
       </div>
     </header>
@@ -32,7 +83,7 @@ const App = {
       <!-- 桌機左側篩選欄 -->
       <aside class="hidden md:flex fade-up fade-up-1 w-56 shrink-0 flex-col overflow-y-auto border-r border-[#c8a96e18]">
         <div class="p-5 flex flex-col gap-4">
-          <p class="text-[#9a9080] text-[10px] tracking-[0.2em] uppercase leading-relaxed">篩選條件</p>
+          <p class="text-[#9a9080] text-[10px] tracking-[0.2em] uppercase leading-relaxed">{{ t.filter }}</p>
           <div v-for="({ label, key, opts }) in filterFields" :key="key">
             <p class="text-[#c8a96e] text-[11px] mb-1.5 leading-relaxed">{{ label }}</p>
             <select v-model="filters[key]"
@@ -42,7 +93,7 @@ const App = {
             </select>
           </div>
           <button @click="resetFilters" class="text-[11px] text-[#9a9080] hover:text-[#c8a96e] transition text-left leading-relaxed">
-            清除篩選 ↺
+            {{ t.clearFilter }}
           </button>
         </div>
       </aside>
@@ -88,8 +139,8 @@ const App = {
           <!-- 空狀態 -->
           <div v-else-if="filtered.length === 0"
             class="flex flex-col items-center justify-center h-full text-[#9a9080] gap-3 fade-up py-20">
-            <p class="text-sm leading-relaxed">找不到符合條件的紀錄</p>
-            <a href="/report.html" class="text-[#c8a96e] text-sm hover:underline">成為第一個回報者 →</a>
+            <p class="text-sm leading-relaxed">{{ t.noRecord }}</p>
+            <a href="/report.html" class="text-[#c8a96e] text-sm hover:underline">{{ t.beFirst }}</a>
           </div>
 
           <!-- 卡片 Grid -->
@@ -119,13 +170,13 @@ const App = {
                   :class="pet.report_type === 'lost'
                     ? 'bg-red-900 text-red-300'
                     : 'bg-emerald-900 text-emerald-300'">
-                  {{ TYPE_MAP[pet.report_type] || '拾獲' }}
+                  {{ typeLabel(pet.report_type) }}
                 </span>
 
                 <!-- 品種 badge -->
                 <span class="absolute bottom-2 left-2 bg-[#1a1a18cc] backdrop-blur-sm text-[#c8a96e]
                              text-[9px] tracking-wider px-2 py-0.5 rounded-full border border-[#c8a96e22]">
-                  {{ pet.breed || '未知品種' }}
+                  {{ pet.breed || t.unknownBreed }}
                 </span>
 
                 <!-- 多張照片數量 -->
@@ -138,20 +189,20 @@ const App = {
                 <div v-if="pet.is_resolved"
                   class="absolute inset-0 bg-[#1a1a18bb] flex items-center justify-center">
                   <span class="text-emerald-400 text-xs font-medium bg-[#1a1a18cc] px-3 py-1 rounded-full border border-emerald-800">
-                    已找到
+                    {{ t.resolved }}
                   </span>
                 </div>
               </div>
 
               <!-- 資訊 -->
               <div class="p-3 md:p-4 flex flex-col gap-1 flex-1">
-                <h3 class="font-serif-display text-[#f0e6cc] text-xs md:text-sm leading-snug">{{ pet.name }}</h3>
+                <h3 class="font-serif-display text-[#f0e6cc] text-xs md:text-sm leading-snug">{{ petName(pet) }}</h3>
                 <p class="text-[10px] text-[#9a9080] leading-relaxed truncate">{{ pet.location }}</p>
                 <p class="text-[9px] text-[#5a5650] leading-relaxed">{{ pet.date }}</p>
                 <p v-if="pet.traits" class="hidden md:block text-[11px] text-[#7a7268] mt-0.5 line-clamp-2 leading-relaxed">
                   {{ pet.traits }}
                 </p>
-                <p class="text-[9px] text-[#c8a96e44] mt-auto pt-1 leading-relaxed">點擊查看詳情 →</p>
+                <p class="text-[9px] text-[#c8a96e44] mt-auto pt-1 leading-relaxed">{{ t.clickDetail }}</p>
               </div>
             </div>
           </div>
@@ -162,16 +213,16 @@ const App = {
           <div ref="mapEl" class="absolute inset-0"></div>
           <!-- 圖例 -->
           <div class="absolute bottom-6 left-4 bg-[#222220dd] backdrop-blur-sm rounded-2xl p-3 z-[1000] text-xs flex flex-col gap-1.5 border border-[#c8a96e18]">
-            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#6ee7b7] shrink-0"></span><span class="text-[#9a9080]">拾獲</span></div>
-            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#f87171] shrink-0"></span><span class="text-[#9a9080]">走失</span></div>
-            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#5a5650] shrink-0"></span><span class="text-[#9a9080]">已解決</span></div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#6ee7b7] shrink-0"></span><span class="text-[#9a9080]">{{ t.mapLegendFound }}</span></div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#f87171] shrink-0"></span><span class="text-[#9a9080]">{{ t.mapLegendLost }}</span></div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#5a5650] shrink-0"></span><span class="text-[#9a9080]">{{ t.mapLegendResolved }}</span></div>
           </div>
           <!-- 無地圖資料提示 -->
           <div v-if="!isLoading && !filtered.some(p => p.lat && p.lng)"
             class="absolute inset-0 flex items-center justify-center z-[999] pointer-events-none">
             <div class="text-center text-[#9a9080] bg-[#222220cc] backdrop-blur-sm rounded-3xl p-6 mx-4">
-              <p class="text-sm leading-relaxed mb-2">尚無地圖定位資料</p>
-              <p class="text-xs text-[#5a5650] leading-relaxed">新回報的紀錄會自動顯示在地圖上</p>
+              <p class="text-sm leading-relaxed mb-2">{{ t.noMap }}</p>
+              <p class="text-xs text-[#5a5650] leading-relaxed">{{ t.noMapSub }}</p>
             </div>
           </div>
         </div>
@@ -184,12 +235,12 @@ const App = {
                 flex items-center gap-2 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.5)]">
       <button @click="showFilter = true"
         class="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#2a2a28] rounded-2xl relative">
-        <span class="text-xs text-[#9a9080]">篩選</span>
+        <span class="text-xs text-[#9a9080]">{{ t.filter }}</span>
         <span v-if="hasFilter" class="absolute top-1.5 right-3 w-1.5 h-1.5 bg-[#c8a96e] rounded-full"></span>
       </button>
       <a href="/report.html"
         class="flex-1 flex items-center justify-center py-2.5 bg-[#c8a96e] rounded-2xl text-xs font-medium text-[#1a1a18]">
-        + 回報拾獲/走失
+        {{ t.report }}
       </a>
     </div>
 
@@ -201,9 +252,9 @@ const App = {
                     shadow-[0_-8px_32px_rgba(0,0,0,0.6)]">
           <div class="w-8 h-1 bg-[#3a3a38] rounded-full mx-auto mb-5"></div>
           <div class="flex items-center justify-between mb-4">
-            <h3 class="font-serif-display text-[#f0e6cc] text-lg">篩選</h3>
+            <h3 class="font-serif-display text-[#f0e6cc] text-lg">{{ t.filter }}</h3>
             <button @click="resetFilters(); showFilter = false"
-              class="text-[11px] text-[#9a9080] hover:text-[#c8a96e] transition">清除全部</button>
+              class="text-[11px] text-[#9a9080] hover:text-[#c8a96e] transition">{{ t.clearFilter }}</button>
           </div>
           <div class="flex flex-col gap-4">
             <div v-for="({ label, key, opts }) in filterFields" :key="key">
@@ -218,7 +269,7 @@ const App = {
           </div>
           <button @click="showFilter = false"
             class="mt-6 w-full py-3 bg-[#c8a96e] text-[#1a1a18] rounded-2xl text-sm font-medium">
-            套用（{{ filtered.length }} 筆）
+            {{ t.applyFilter(filtered.length) }}
           </button>
         </div>
       </div>
@@ -271,7 +322,7 @@ const App = {
             <div v-if="detail.is_resolved"
               class="absolute inset-0 bg-[#1a1a18aa] flex items-center justify-center z-10">
               <span class="text-emerald-400 font-medium bg-[#1a1a18cc] px-4 py-2 rounded-full border border-emerald-800">
-                已找到 / 已歸還
+                {{ t.resolved }}
               </span>
             </div>
           </div>
@@ -284,45 +335,45 @@ const App = {
                 <div class="flex items-center gap-2 mb-1">
                   <span class="text-[10px] px-2 py-0.5 rounded-full font-medium"
                     :class="detail.report_type === 'lost' ? 'bg-red-900 text-red-300' : 'bg-emerald-900 text-emerald-300'">
-                    {{ TYPE_MAP[detail.report_type] || '拾獲' }}
+                    {{ typeLabel(detail.report_type) }}
                   </span>
                   <span v-if="isOwner(detail)" class="text-[10px] text-[#c8a96e] bg-[#c8a96e15] px-2 py-0.5 rounded-full border border-[#c8a96e33]">
-                    你的回報
+                    {{ t.myReport }}
                   </span>
                 </div>
-                <h2 class="font-serif-display text-[#f0e6cc] text-2xl leading-snug">{{ detail.name }}</h2>
+                <h2 class="font-serif-display text-[#f0e6cc] text-2xl leading-snug">{{ petName(detail) }}</h2>
               </div>
             </div>
 
             <!-- 基本資訊 -->
             <div class="grid grid-cols-2 gap-2.5">
               <div class="bg-[#1e1e1c] rounded-2xl p-3">
-                <p class="text-[#9a9080] text-[10px] uppercase tracking-wider mb-1 leading-relaxed">地點</p>
+                <p class="text-[#9a9080] text-[10px] uppercase tracking-wider mb-1 leading-relaxed">{{ t.locLabel }}</p>
                 <p class="text-[#e8e0d0] text-sm leading-relaxed">{{ detail.location }}</p>
               </div>
               <div class="bg-[#1e1e1c] rounded-2xl p-3">
-                <p class="text-[#9a9080] text-[10px] uppercase tracking-wider mb-1 leading-relaxed">日期</p>
+                <p class="text-[#9a9080] text-[10px] uppercase tracking-wider mb-1 leading-relaxed">{{ t.dateLabel }}</p>
                 <p class="text-[#e8e0d0] text-sm leading-relaxed">{{ detail.date }}</p>
               </div>
               <div v-if="detail.breed" class="bg-[#1e1e1c] rounded-2xl p-3">
-                <p class="text-[#9a9080] text-[10px] uppercase tracking-wider mb-1 leading-relaxed">品種</p>
+                <p class="text-[#9a9080] text-[10px] uppercase tracking-wider mb-1 leading-relaxed">{{ t.breedLabel }}</p>
                 <p class="text-[#e8e0d0] text-sm leading-relaxed">{{ detail.breed }}</p>
               </div>
               <div v-if="detail.color" class="bg-[#1e1e1c] rounded-2xl p-3">
-                <p class="text-[#9a9080] text-[10px] uppercase tracking-wider mb-1 leading-relaxed">毛色</p>
+                <p class="text-[#9a9080] text-[10px] uppercase tracking-wider mb-1 leading-relaxed">{{ t.colorLabel }}</p>
                 <p class="text-[#e8e0d0] text-sm leading-relaxed">{{ detail.color }}</p>
               </div>
             </div>
 
             <!-- 特徵 -->
             <div v-if="detail.traits" class="bg-[#1e1e1c] rounded-2xl p-4">
-              <p class="text-[#9a9080] text-[10px] uppercase tracking-wider mb-2 leading-relaxed">外觀特徵</p>
+              <p class="text-[#9a9080] text-[10px] uppercase tracking-wider mb-2 leading-relaxed">{{ t.traitsLabel }}</p>
               <p class="text-[#e8e0d0] text-sm leading-relaxed">{{ detail.traits }}</p>
             </div>
 
             <!-- 聯絡方式 -->
             <div class="bg-[#c8a96e15] border border-[#c8a96e33] rounded-2xl p-4">
-              <p class="text-[#c8a96e] text-[10px] uppercase tracking-wider mb-2 leading-relaxed">聯絡方式</p>
+              <p class="text-[#c8a96e] text-[10px] uppercase tracking-wider mb-2 leading-relaxed">{{ t.contactLabel }}</p>
               <p class="text-[#f0e6cc] text-sm font-medium leading-relaxed">{{ detail.contact }}</p>
             </div>
 
@@ -330,17 +381,17 @@ const App = {
             <div v-if="isOwner(detail) && !detail.is_resolved" class="flex gap-2">
               <button @click="markFound(detail)"
                 class="flex-1 py-2.5 bg-emerald-900 text-emerald-300 rounded-2xl text-sm hover:bg-emerald-800 transition">
-                標記已找到
+                {{ t.markFound }}
               </button>
               <button @click="deletePet(detail)"
                 class="py-2.5 px-4 bg-[#2a2a28] text-red-400 rounded-2xl text-sm hover:bg-red-950 transition">
-                刪除
+                {{ t.delete }}
               </button>
             </div>
             <div v-else-if="isOwner(detail) && detail.is_resolved">
               <button @click="deletePet(detail)"
                 class="w-full py-2.5 bg-[#2a2a28] text-red-400 rounded-2xl text-sm hover:bg-red-950 transition">
-                刪除紀錄
+                {{ t.deleteRecord }}
               </button>
             </div>
 
@@ -348,7 +399,7 @@ const App = {
             <button @click="share(detail)"
               class="w-full py-2.5 rounded-2xl border border-[#c8a96e33] text-[#c8a96e] text-sm
                      hover:bg-[#c8a96e15] transition leading-relaxed">
-              分享這則紀錄
+              {{ t.share }}
             </button>
           </div>
         </div>
@@ -359,6 +410,18 @@ const App = {
   `,
 
   setup() {
+    const lang         = ref(localStorage.getItem('foundy_lang') || 'zh');
+    const t            = computed(() => I18N[lang.value]);
+    function toggleLang() {
+      lang.value = lang.value === 'zh' ? 'en' : 'zh';
+      localStorage.setItem('foundy_lang', lang.value);
+      // 重設篩選（因為選項文字不同）
+      filters.value = { breed: t.value.all, color: t.value.all, location: t.value.all };
+      BREEDS.splice(0, BREEDS.length, t.value.all);
+      COLORS.splice(0, COLORS.length, t.value.all);
+      CITIES.splice(0, CITIES.length, t.value.all);
+    }
+
     const filters      = ref({ breed: '全部', color: '全部', location: '全部' });
     const typeFilter   = ref('all');
     const activeView   = ref('list');
@@ -369,23 +432,26 @@ const App = {
     const detail       = ref(null);
     const activePhotoIdx = ref(0);
 
-    const typeOptions = [
-      { val: 'all',   label: '全部' },
-      { val: 'found', label: '拾獲' },
-      { val: 'lost',  label: '走失' },
-    ];
+    const typeOptions = computed(() => [
+      { val: 'all',   label: t.value.all   },
+      { val: 'found', label: t.value.found },
+      { val: 'lost',  label: t.value.lost  },
+    ]);
 
     onMounted(() => {
+      // 初始化篩選預設值
+      filters.value = { breed: t.value.all, color: t.value.all, location: t.value.all };
+      BREEDS[0] = t.value.all;
+      COLORS[0] = t.value.all;
+      CITIES[0] = t.value.all;
+
       fetch('/api/reports')
         .then(r => r.json())
         .then(data => {
           pets.value = data.map(p => ({
             ...p,
-            name: (p.breed || '未知') + ' #' + String(p.id).slice(-4),
-            // 相容舊資料：photos 陣列不存在則從 photo 建
             photos: p.photos || (p.photo ? [p.photo] : []),
           }));
-          BREEDS.splice(1); COLORS.splice(1); CITIES.splice(1);
           data.forEach(p => {
             if (p.breed    && !BREEDS.includes(p.breed))    BREEDS.push(p.breed);
             if (p.color    && !COLORS.includes(p.color))    COLORS.push(p.color);
@@ -395,30 +461,35 @@ const App = {
         .finally(() => { isLoading.value = false; });
     });
 
-    const filterFields = [
-      { label: '品種', key: 'breed',    opts: BREEDS },
-      { label: '毛色', key: 'color',    opts: COLORS },
-      { label: '地點', key: 'location', opts: CITIES },
-    ];
+    const filterFields = computed(() => [
+      { label: t.value.breed,    key: 'breed',    opts: BREEDS },
+      { label: t.value.color,    key: 'color',    opts: COLORS },
+      { label: t.value.location, key: 'location', opts: CITIES },
+    ]);
 
-    const filtered = computed(() => pets.value.filter(p => {
-      if (typeFilter.value !== 'all' && p.report_type !== typeFilter.value) return false;
-      if (filters.value.breed    !== '全部' && p.breed    !== filters.value.breed)    return false;
-      if (filters.value.color    !== '全部' && p.color    !== filters.value.color)    return false;
-      if (filters.value.location !== '全部' && p.location !== filters.value.location) return false;
-      return true;
-    }));
+    const filtered = computed(() => {
+      const all = t.value.all;
+      return pets.value.filter(p => {
+        if (typeFilter.value !== 'all' && p.report_type !== typeFilter.value) return false;
+        if (filters.value.breed    !== all && p.breed    !== filters.value.breed)    return false;
+        if (filters.value.color    !== all && p.color    !== filters.value.color)    return false;
+        if (filters.value.location !== all && p.location !== filters.value.location) return false;
+        return true;
+      });
+    });
 
-    const hasFilter = computed(() =>
-      typeFilter.value !== 'all' ||
-      filters.value.breed !== '全部' ||
-      filters.value.color !== '全部' ||
-      filters.value.location !== '全部'
-    );
+    const hasFilter = computed(() => {
+      const all = t.value.all;
+      return typeFilter.value !== 'all' ||
+        filters.value.breed !== all ||
+        filters.value.color !== all ||
+        filters.value.location !== all;
+    });
 
     function resetFilters() {
+      const all = t.value.all;
       typeFilter.value = 'all';
-      filters.value = { breed: '全部', color: '全部', location: '全部' };
+      filters.value = { breed: all, color: all, location: all };
     }
 
     // ── 地圖 ────────────────────────────────────────────────────────────────
@@ -484,7 +555,7 @@ const App = {
     }
 
     async function markFound(pet) {
-      if (!confirm('標記此紀錄為「已找到／已歸還」？')) return;
+      if (!confirm(t.value.confirmFound)) return;
       const token = getToken(pet);
       const res = await fetch(`/api/reports?id=${pet.id}`, {
         method: 'PATCH',
@@ -498,7 +569,7 @@ const App = {
     }
 
     async function deletePet(pet) {
-      if (!confirm('確定要刪除這則紀錄？此操作無法復原。')) return;
+      if (!confirm(t.value.confirmDelete)) return;
       const token = getToken(pet);
       const res = await fetch(`/api/reports?id=${pet.id}`, {
         method: 'DELETE',
@@ -512,20 +583,36 @@ const App = {
     }
 
     function share(pet) {
-      const text = `${TYPE_MAP[pet.report_type] || ''}：${pet.name}（${pet.location}）`;
       if (navigator.share) {
-        navigator.share({ title: pet.name, text, url: location.href });
+        navigator.share({ title: pet.name, url: location.href });
       } else {
         navigator.clipboard.writeText(location.href);
-        alert('連結已複製！');
+        alert(t.value.copied);
       }
     }
 
+    function petName(p) {
+      return (p.breed || t.value.unknown) + ' #' + String(p.id).slice(-4);
+    }
+
+    function statusLabel(s) {
+      return lang.value === 'en'
+        ? ({ keeping: 'In care', shelter: 'At shelter', released: 'Released' }[s] || s)
+        : ({ keeping: '照顧中', shelter: '已送收容所', released: '已放回' }[s] || s);
+    }
+
+    function typeLabel(s) {
+      return lang.value === 'en'
+        ? ({ found: 'Found', lost: 'Lost' }[s] || s)
+        : ({ found: '拾獲', lost: '走失' }[s] || s);
+    }
+
     return {
+      lang, t, toggleLang,
       filters, typeFilter, typeOptions, activeView, mapEl,
       filterFields, pets, filtered, isLoading,
       showFilter, hasFilter, detail, activePhotoIdx,
-      STATUS_MAP, TYPE_MAP,
+      petName, statusLabel, typeLabel,
       resetFilters, openDetail, isOwner, markFound, deletePet, share,
     };
   }
