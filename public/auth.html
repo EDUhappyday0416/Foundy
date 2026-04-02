@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>回報拾獲寵物 | Foundy</title>
+  <title>登入 | Foundy</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     body { font-family: 'DM Sans', sans-serif; }
     .font-serif-display { font-family: 'DM Serif Display', serif; }
@@ -18,20 +16,13 @@
       background-color: #1a1a18;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
     }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(18px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .fade-up { animation: fadeUp 0.5s ease both; }
-    input, select, textarea { font-size: 16px !important; }
-    .leaflet-container { background: #1a1a18; }
-    .leaflet-tile { filter: brightness(0.85) saturate(0.7); }
-    .leaflet-control-attribution { background: #1a1a18bb !important; color: #5a5650 !important; font-size: 9px; }
-    .leaflet-control-attribution a { color: #9a9080 !important; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.45s ease both; }
+    input { font-size: 16px !important; }
   </style>
 </head>
-<body class="noise-bg min-h-screen text-[#e8e0d0]">
+<body class="noise-bg min-h-screen text-[#e8e0d0] flex items-center justify-center px-4">
   <div id="app"></div>
-  <script type="module" src="./report.js"></script>
+  <script type="module" src="./auth.js"></script>
 </body>
 </html>

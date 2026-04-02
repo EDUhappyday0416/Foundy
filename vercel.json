@@ -8,7 +8,8 @@
     { "src": "/api/reports",  "dest": "/api/reports.js" },
     { "src": "/api/compare",  "dest": "/api/compare.js" },
     { "src": "/report",        "dest": "/public/report.html" },
-    { "src": "/",             "dest": "/public/index.html"  },
+    { "src": "/auth",          "dest": "/public/auth.html"   },
+    { "src": "/",              "dest": "/public/index.html"  },
     { "src": "/(.*)",         "dest": "/public/$1"          }
   ]
 }

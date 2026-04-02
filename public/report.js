@@ -1,4 +1,9 @@
-const { createApp, ref, computed, watch, nextTick } = Vue;
+const { createApp, ref, computed, watch, nextTick, onMounted } = Vue;
+
+const supabase = window.supabase.createClient(
+  'https://ouqvgowpjivtriymntfs.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91cXZnb3dwaml2dHJpeW1udGZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTI1MzEsImV4cCI6MjA5MDYyODUzMX0.X7eBWavBvOu71yQ9dcO448vFhLCBUzeHfnuBUbZZtRk'
+);
 
 const BREEDS_ZH = ['不確定', '柴犬', '柯基', '黃金獵犬', '拉布拉多', '貴賓狗', '法鬥', '哈士奇', '橘貓', '虎斑貓', '暹羅貓', '波斯貓', '米克斯', '其他'];
 const BREEDS_EN = ['Unknown', 'Shiba Inu', 'Corgi', 'Golden Retriever', 'Labrador', 'Poodle', 'French Bulldog', 'Husky', 'Orange Tabby', 'Tabby', 'Siamese', 'Persian', 'Mixed', 'Other'];
@@ -240,6 +245,17 @@ const App = {
   setup() {
     const lang          = ref(localStorage.getItem('foundy_lang') || 'zh');
     const t             = computed(() => I18N[lang.value]);
+    const currentUser   = ref(null);
+
+    onMounted(async () => {
+      const { data } = await supabase.auth.getSession();
+      currentUser.value = data.session?.user || null;
+      // 未登入跳轉登入頁
+      if (!currentUser.value) {
+        location.href = '/auth.html?redirect=/report.html';
+      }
+    });
+
     function toggleLang() {
       lang.value = lang.value === 'zh' ? 'en' : 'zh';
       localStorage.setItem('foundy_lang', lang.value);
@@ -381,7 +397,8 @@ const App = {
             ...form.value,
             report_type: reportType.value,
             photo: photoUrls[0], photos: photoUrls,
-            lat, lng, edit_token: editToken,
+            lat, lng,
+            user_id: currentUser.value?.id || null,
           }),
         });
         if (!res.ok) throw new Error(await res.text());

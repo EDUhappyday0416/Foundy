@@ -1,5 +1,10 @@
 const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
+const supabase = window.supabase.createClient(
+  'https://ouqvgowpjivtriymntfs.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91cXZnb3dwaml2dHJpeW1udGZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTI1MzEsImV4cCI6MjA5MDYyODUzMX0.X7eBWavBvOu71yQ9dcO448vFhLCBUzeHfnuBUbZZtRk'
+);
+
 const BREEDS = ['全部'];
 const COLORS = ['全部'];
 const CITIES = ['All'];
@@ -71,6 +76,18 @@ const App = {
           class="px-3 py-1.5 rounded-xl text-xs border border-[#c8a96e33] text-[#c8a96e] hover:bg-[#c8a96e15] transition">
           {{ lang === 'zh' ? 'EN' : '中' }}
         </button>
+        <!-- 未登入 -->
+        <a v-if="!currentUser" href="/auth.html"
+          class="px-3 py-1.5 rounded-xl text-xs border border-[#c8a96e33] text-[#9a9080] hover:text-[#c8a96e] hover:border-[#c8a96e66] transition">
+          {{ lang === 'zh' ? '登入' : 'Sign In' }}
+        </a>
+        <!-- 已登入 -->
+        <div v-else class="hidden md:flex items-center gap-2">
+          <span class="text-[11px] text-[#9a9080]">{{ currentUser.user_metadata?.display_name || currentUser.email?.split('@')[0] }}</span>
+          <button @click="signOut" class="text-[11px] text-[#5a5650] hover:text-red-400 transition">
+            {{ lang === 'zh' ? '登出' : 'Sign out' }}
+          </button>
+        </div>
         <a href="/report.html" class="px-4 py-2 rounded-2xl text-xs md:text-sm font-medium transition bg-[#c8a96e] text-[#1a1a18] hover:bg-[#d4b87a]">
           {{ t.report }}
         </a>
@@ -412,10 +429,23 @@ const App = {
   setup() {
     const lang         = ref(localStorage.getItem('foundy_lang') || 'zh');
     const t            = computed(() => I18N[lang.value]);
+    const currentUser  = ref(null);
+
+    supabase.auth.getSession().then(({ data }) => {
+      currentUser.value = data.session?.user || null;
+    });
+    supabase.auth.onAuthStateChange((_, session) => {
+      currentUser.value = session?.user || null;
+    });
+
+    async function signOut() {
+      await supabase.auth.signOut();
+      currentUser.value = null;
+    }
+
     function toggleLang() {
       lang.value = lang.value === 'zh' ? 'en' : 'zh';
       localStorage.setItem('foundy_lang', lang.value);
-      // 重設篩選（因為選項文字不同）
       filters.value = { breed: t.value.all, color: t.value.all, location: t.value.all };
       BREEDS.splice(0, BREEDS.length, t.value.all);
       COLORS.splice(0, COLORS.length, t.value.all);
@@ -545,24 +575,14 @@ const App = {
 
     // ── 擁有者功能 ───────────────────────────────────────────────────────────
     function isOwner(pet) {
-      if (!pet) return false;
-      try { return !!JSON.parse(localStorage.getItem('foundy_tokens') || '{}')[pet.id]; }
-      catch { return false; }
-    }
-    function getToken(pet) {
-      try { return JSON.parse(localStorage.getItem('foundy_tokens') || '{}')[pet.id] || null; }
-      catch { return null; }
+      if (!pet || !currentUser.value) return false;
+      return pet.user_id === currentUser.value.id;
     }
 
     async function markFound(pet) {
       if (!confirm(t.value.confirmFound)) return;
-      const token = getToken(pet);
-      const res = await fetch(`/api/reports?id=${pet.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ edit_token: token, is_resolved: true }),
-      });
-      if (res.ok) {
+      const { error } = await supabase.from('pets').update({ is_resolved: true }).eq('id', pet.id);
+      if (!error) {
         pet.is_resolved = true;
         if (mapInstance) updateMarkers();
       }
@@ -570,13 +590,8 @@ const App = {
 
     async function deletePet(pet) {
       if (!confirm(t.value.confirmDelete)) return;
-      const token = getToken(pet);
-      const res = await fetch(`/api/reports?id=${pet.id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ edit_token: token }),
-      });
-      if (res.ok) {
+      const { error } = await supabase.from('pets').delete().eq('id', pet.id);
+      if (!error) {
         pets.value = pets.value.filter(p => p.id !== pet.id);
         detail.value = null;
       }
@@ -608,7 +623,7 @@ const App = {
     }
 
     return {
-      lang, t, toggleLang,
+      lang, t, toggleLang, currentUser, signOut,
       filters, typeFilter, typeOptions, activeView, mapEl,
       filterFields, pets, filtered, isLoading,
       showFilter, hasFilter, detail, activePhotoIdx,

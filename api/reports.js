@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
   // ── POST ─────────────────────────────────────────────────────────────────
   if (req.method === 'POST') {
     const { type, breed, color, location, date, traits, contact, status,
-            photo, photos, report_type, lat, lng, edit_token } = req.body;
+            photo, photos, report_type, lat, lng, edit_token, user_id } = req.body;
     if (!location || !contact || !photo) {
       return res.status(400).json({ error: 'location, contact, photo are required' });
     }
@@ -36,7 +36,8 @@ module.exports = async (req, res) => {
       .from('pets')
       .insert([{
         type, breed, color, location, date, traits, contact, status, photo,
-        photos: photos || null,
+        photos:  photos  || null,
+        user_id: user_id || null,
         report_type: report_type || 'found',
         lat:  lat  || null,
         lng:  lng  || null,
