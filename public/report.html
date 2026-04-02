@@ -8,6 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     body { font-family: 'DM Sans', sans-serif; }
     .font-serif-display { font-family: 'DM Serif Display', serif; }
@@ -20,8 +22,11 @@
       to   { opacity: 1; transform: translateY(0); }
     }
     .fade-up { animation: fadeUp 0.5s ease both; }
-    /* 防止 iOS 輸入框自動放大 */
     input, select, textarea { font-size: 16px !important; }
+    .leaflet-container { background: #1a1a18; }
+    .leaflet-tile { filter: brightness(0.85) saturate(0.7); }
+    .leaflet-control-attribution { background: #1a1a18bb !important; color: #5a5650 !important; font-size: 9px; }
+    .leaflet-control-attribution a { color: #9a9080 !important; }
   </style>
 </head>
 <body class="noise-bg min-h-screen text-[#e8e0d0]">

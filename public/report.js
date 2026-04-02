@@ -1,4 +1,4 @@
-const { createApp, ref, computed } = Vue;
+const { createApp, ref, computed, watch, nextTick } = Vue;
 
 const BREEDS_ZH = ['不確定', '柴犬', '柯基', '黃金獵犬', '拉布拉多', '貴賓狗', '法鬥', '哈士奇', '橘貓', '虎斑貓', '暹羅貓', '波斯貓', '米克斯', '其他'];
 const BREEDS_EN = ['Unknown', 'Shiba Inu', 'Corgi', 'Golden Retriever', 'Labrador', 'Poodle', 'French Bulldog', 'Husky', 'Orange Tabby', 'Tabby', 'Siamese', 'Persian', 'Mixed', 'Other'];
@@ -169,10 +169,24 @@ const App = {
         <!-- 地點 -->
         <div>
           <label class="block text-xs text-[#c8a96e] tracking-wider uppercase mb-2 leading-relaxed">{{ locationLabel }} *</label>
-          <input v-model="form.location" type="text" :placeholder="t.traitsPlaceholder"
+          <input v-model="form.location" type="text" :placeholder="lang === 'zh' ? 'e.g. 台北市大安區和平東路' : 'e.g. 123 Main St, Los Angeles'"
             class="w-full bg-[#1a1a18] border border-[#c8a96e22] rounded-2xl px-3 py-2 text-sm text-[#e8e0d0]
                    placeholder-[#5a5650] focus:outline-none focus:border-[#c8a96e66] transition" />
           <p v-if="errors.location" class="text-red-400 text-xs mt-1 leading-relaxed">{{ errors.location }}</p>
+
+          <!-- 地圖點選 -->
+          <div class="mt-2">
+            <button type="button" @click="toggleMap"
+              class="text-xs text-[#c8a96e] hover:text-[#d4b87a] transition leading-relaxed">
+              {{ showMap ? (lang === 'zh' ? '收起地圖 ↑' : 'Hide map ↑') : (lang === 'zh' ? '在地圖上標記位置 ↓' : 'Pin on map ↓') }}
+            </button>
+            <div v-show="showMap" class="mt-2 rounded-2xl overflow-hidden border border-[#c8a96e22]">
+              <div ref="mapEl" style="height:220px"></div>
+              <p class="text-[10px] text-[#5a5650] text-center py-1.5 bg-[#1a1a18] leading-relaxed">
+                {{ pinned ? (lang === 'zh' ? '已標記位置 ✓' : 'Location pinned ✓') : (lang === 'zh' ? '點擊地圖標記位置' : 'Tap map to pin location') }}
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- 日期 -->
@@ -261,6 +275,56 @@ const App = {
     const locationLabel = computed(() => reportType.value === 'lost' ? t.value.lostLoc : t.value.foundLoc);
     const dateLabel     = computed(() => reportType.value === 'lost' ? t.value.lostDate : t.value.foundDate);
 
+    // ── 地圖點選 ────────────────────────────────────────────────────────────
+    const mapEl    = ref(null);
+    const showMap  = ref(false);
+    const pinned   = ref(false);
+    let mapInst    = null;
+    let markerInst = null;
+
+    async function toggleMap() {
+      showMap.value = !showMap.value;
+      if (!showMap.value) return;
+      await nextTick();
+      if (mapInst) { mapInst.invalidateSize(); return; }
+
+      const L = window.L;
+      // 預設中心：台灣
+      const center = [25.04, 121.51];
+      mapInst = L.map(mapEl.value, { zoomControl: true }).setView(center, 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap', maxZoom: 18,
+      }).addTo(mapInst);
+
+      // 嘗試取得用戶 GPS
+      navigator.geolocation?.getCurrentPosition(pos => {
+        mapInst.setView([pos.coords.latitude, pos.coords.longitude], 14);
+      });
+
+      // 點擊放大頭針
+      const icon = L.divIcon({
+        html: `<div style="width:16px;height:16px;background:#c8a96e;border:2px solid #1a1a18;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.5)"></div>`,
+        iconSize: [16, 16], iconAnchor: [8, 8], className: '',
+      });
+
+      mapInst.on('click', async e => {
+        const { lat, lng } = e.latlng;
+        form.value._lat = lat;
+        form.value._lng = lng;
+        pinned.value = true;
+
+        if (markerInst) markerInst.setLatLng([lat, lng]);
+        else markerInst = L.marker([lat, lng], { icon }).addTo(mapInst);
+
+        // 反向地理編碼取得地址
+        try {
+          const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { 'Accept-Language': 'zh-TW,en' } });
+          const data = await res.json();
+          if (data.display_name) form.value.location = data.display_name.split(',').slice(0, 3).join(', ');
+        } catch {}
+      });
+    }
+
     function onPhoto(e) {
       const files     = Array.from(e.target.files || []);
       const remaining = MAX_PHOTOS - photoFiles.value.length;
@@ -305,7 +369,9 @@ const App = {
           photoUrls.push(await uploadOne(photoFiles.value[i]));
         }
         loadingMsg.value = t.value.geocoding;
-        const { lat, lng } = await geocode(form.value.location);
+        // 優先用地圖點選的座標，fallback 才用文字 geocode
+        const lat = form.value._lat || (await geocode(form.value.location)).lat;
+        const lng = form.value._lng || (await geocode(form.value.location)).lng;
         const editToken = crypto.randomUUID();
         loadingMsg.value = t.value.saving;
         const res = await fetch('/api/reports', {
@@ -348,6 +414,7 @@ const App = {
       lang, t, toggleLang,
       reportType, form, photoPreviews, errors, loading, loadingMsg, submitted,
       breeds, colors, typeOptions, statuses, MAX_PHOTOS,
+      mapEl, showMap, pinned, toggleMap,
       locationLabel, dateLabel,
       onPhoto, removePhoto, submit, reset,
     };
